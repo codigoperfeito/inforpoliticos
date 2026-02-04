@@ -1,0 +1,34 @@
+{
+  "default": {
+    "pros": [
+      "Participa de comissões estratégicas",
+      "Boa presença em debates locais"
+    ],
+    "cons": [
+      "Baixa presença em sessões plenárias",
+      "Pouca transparência nas agendas públicas"
+    ],
+    "news": [
+      {
+        "title": "Relatório destaca atuação em comissões",
+        "source": "Jornal Exemplo",
+        "imageUrl": "https://images.unsplash.com/photo-1522202222206-5f44b29f2f5a?auto=format&fit=crop&w=800&q=60",
+        "url": "https://example.com/noticia-1"
+      },
+      {
+        "title": "Projeto recebe apoio de entidades civis",
+        "source": "Gazeta Local",
+        "imageUrl": "https://images.unsplash.com/photo-1521790797524-b2497295b8a0?auto=format&fit=crop&w=800&q=60",
+        "url": "https://example.com/noticia-2"
+      }
+    ],
+    "rating": 4.5,
+    "cleanRecord": true,
+    "score": 78,
+    "votesReceived": 125000,
+    "tweets": [
+      "Exemplo de publicação recente com foco em transparência.",
+      "Exemplo de atualização sobre projetos em andamento."
+    ]
+  }
+}

@@ -243,7 +243,7 @@ class _HomePageState extends State<HomePage> {
                             });
                           },
                           icon: const Icon(Icons.expand_more),
-                          label: Text('Carregar mais (${_visibleCount}/$_currentTotal)'),
+                          label: Text('Carregar mais ($_visibleCount/$_currentTotal)'),
                         ),
                       ],
                     ),

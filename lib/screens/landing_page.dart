@@ -9,6 +9,7 @@ import '../services/deputy_repository.dart';
 import '../services/news_service.dart';
 import 'deputy_detail_page.dart';
 import 'home_page.dart';
+import 'senators_page.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -145,32 +146,34 @@ class _LandingPageState extends State<LandingPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Busque deputados e filtre por região, UF, partido e situação.',
+                    'Busque politicos e filtre por cargo, UF e partido.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
                         ?.copyWith(color: Colors.grey.shade700),
                   ),
-                  const SizedBox(height: 24),
-              _QuickSearchCard(
-                onTap: () => Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const HomePage())),
-              ),
-              const SizedBox(height: 20),
+                  const SizedBox(height: 12),
               Text(
-                'Explorar deputados',
+                'Explorar politicos',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
               _RoleGrid(
                 onDeputados: () => Navigator.of(context)
                     .push(MaterialPageRoute(builder: (_) => const HomePage())),
+                onSenadores: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const SenatorsPage())),
               ),
               const SizedBox(height: 16),
               _StateShortcut(
-                onSelect: (uf) => Navigator.of(context).push(
+                onSelectDeputados: (uf) => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => HomePage(initialUf: uf)),
+                ),
+                onSelectSenadores: (uf) => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SenatorsPage(initialUf: uf),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -743,30 +746,11 @@ bool _containsProposalNumber(String text) {
       text.contains('plc ');
 }
 
-class _QuickSearchCard extends StatelessWidget {
-  const _QuickSearchCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.all(16),
-        leading: const Icon(Icons.search, size: 36),
-        title: const Text('Ir para a busca'),
-        subtitle: const Text('Veja deputados federais e aplique filtros rápidos.'),
-        trailing: const Icon(Icons.chevron_right),
-      ),
-    );
-  }
-}
-
 class _RoleGrid extends StatelessWidget {
-  const _RoleGrid({required this.onDeputados});
+  const _RoleGrid({required this.onDeputados, required this.onSenadores});
 
   final VoidCallback onDeputados;
+  final VoidCallback onSenadores;
 
   @override
   Widget build(BuildContext context) {
@@ -777,6 +761,13 @@ class _RoleGrid extends StatelessWidget {
           subtitle: 'Câmara dos Deputados',
           icon: Icons.account_balance,
           onTap: onDeputados,
+        ),
+        const SizedBox(height: 8),
+        _RoleCard(
+          title: 'Senadores',
+          subtitle: 'Senado Federal',
+          icon: Icons.account_balance_outlined,
+          onTap: onSenadores,
         ),
       ],
     );
@@ -814,9 +805,13 @@ class _RoleCard extends StatelessWidget {
 }
 
 class _StateShortcut extends StatelessWidget {
-  const _StateShortcut({required this.onSelect});
+  const _StateShortcut({
+    required this.onSelectDeputados,
+    required this.onSelectSenadores,
+  });
 
-  final ValueChanged<String> onSelect;
+  final ValueChanged<String> onSelectDeputados;
+  final ValueChanged<String> onSelectSenadores;
 
   @override
   Widget build(BuildContext context) {
@@ -824,15 +819,39 @@ class _StateShortcut extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Estados populares',
+          'Atalhos por UF',
           style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Deputados',
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: ['RJ', 'SP', 'MG', 'BA', 'RS', 'PE'].map((uf) {
-            return ActionChip(label: Text(uf), onPressed: () => onSelect(uf));
+            return ActionChip(
+              label: Text(uf),
+              onPressed: () => onSelectDeputados(uf),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Senadores',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ['RJ', 'SP', 'MG', 'BA', 'RS', 'PE'].map((uf) {
+            return ActionChip(
+              label: Text(uf),
+              onPressed: () => onSelectSenadores(uf),
+            );
           }).toList(),
         ),
       ],

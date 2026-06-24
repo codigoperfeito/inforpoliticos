@@ -7,6 +7,7 @@ class Senator {
     required this.photoUrl,
     this.fullName,
     this.email,
+    this.isActive,
   });
 
   final int id;
@@ -16,6 +17,7 @@ class Senator {
   final String photoUrl;
   final String? fullName;
   final String? email;
+  final bool? isActive;
 
   static Senator fromJson(Map<String, dynamic> json) {
     final ident = _readIdent(json);
@@ -51,6 +53,7 @@ class Senator {
           _string(ident['emailParlamentar']) ??
           _string(json['email']) ??
           '',
+      isActive: _readActive(json),
     );
   }
 
@@ -64,6 +67,7 @@ class Senator {
       photoUrl: _string(json['avatar_url']) ?? '',
       fullName: _string(json['full_name']),
       email: _string(json['email']),
+      isActive: _readActive(json),
     );
   }
 
@@ -89,6 +93,7 @@ class Senator {
       photoUrl: (json['photoUrl'] ?? '') as String,
       fullName: json['fullName'] as String?,
       email: json['email'] as String?,
+      isActive: json['isActive'] as bool?,
     );
   }
 
@@ -101,6 +106,7 @@ class Senator {
       'photoUrl': photoUrl,
       'fullName': fullName,
       'email': email,
+      'isActive': isActive,
     };
   }
 
@@ -136,6 +142,30 @@ class Senator {
     return {};
   }
 
+  static bool? _readActive(Map<String, dynamic> json) {
+    final direct = json['Ativo'] ??
+        json['ativo'] ??
+        json['EmExercicio'] ??
+        json['emExercicio'] ??
+        json['emExercicioParlamentar'];
+    if (direct is bool) return direct;
+    if (direct is String) {
+      final normalized = direct.toLowerCase();
+      if (normalized == 'sim' || normalized == 'true') return true;
+      if (normalized == 'nao' || normalized == 'não' || normalized == 'false') {
+        return false;
+      }
+    }
+    final situacao = _string(json['Situacao']) ?? _string(json['situacao']);
+    if (situacao != null) {
+      final s = situacao.toLowerCase();
+      if (s.contains('exercicio') || s.contains('ativa')) return true;
+      if (s.contains('afast') || s.contains('licenc') || s.contains('inativa')) {
+        return false;
+      }
+    }
+    return null;
+  }
   static Map<String, dynamic> _readMandato(Map<String, dynamic> json) {
     final direct = json['Mandato'] as Map<String, dynamic>? ??
         json['mandato'] as Map<String, dynamic>?;

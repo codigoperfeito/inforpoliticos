@@ -23,7 +23,6 @@ class _SenatorsPageState extends State<SenatorsPage> {
   String _query = '';
   String? _selectedUf;
   String? _selectedParty;
-  int _year = DateTime.now().year;
 
   @override
   void initState() {
@@ -153,11 +152,6 @@ class _SenatorsPageState extends State<SenatorsPage> {
                   onSelected: (value) => setState(() => _query = value),
                 ),
                 const SizedBox(height: 12),
-                _YearFilter(
-                  year: _year,
-                  onChanged: (value) => setState(() => _year = value),
-                ),
-                const SizedBox(height: 12),
                 _FilterPanel(
                   ufs: _ufs,
                   parties: parties,
@@ -180,11 +174,8 @@ class _SenatorsPageState extends State<SenatorsPage> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) =>
-                                SenatorDetailPage(
-                                  senatorId: senator.id,
-                                  initialYear: _year,
-                                ),
+                          builder: (_) =>
+                                SenatorDetailPage(senatorId: senator.id),
                           ),
                         );
                       },
@@ -228,47 +219,6 @@ const _ufs = [
   'TO',
 ];
 
-class _YearFilter extends StatelessWidget {
-  const _YearFilter({required this.year, required this.onChanged});
-
-  final int year;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now().year;
-    final years = [for (int y = now; y >= now - 5; y--) y];
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Text(
-              'Ano',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(width: 12),
-            DropdownButton<int>(
-              value: year,
-              items: years
-                  .map((y) => DropdownMenuItem<int>(
-                        value: y,
-                        child: Text('$y'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  onChanged(value);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _SearchField extends StatelessWidget {
   const _SearchField({

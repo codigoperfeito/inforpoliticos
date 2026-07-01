@@ -1,79 +1,64 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
 
-import 'screens/landing_page.dart';
+import 'package:flutter/material.dart';
+
+import 'core/theme/app_theme.dart';
+import 'screens/app_shell.dart';
 
 void main() {
   runApp(const InfoPoliticosApp());
 }
 
-class InfoPoliticosApp extends StatelessWidget {
+class InfoPoliticosApp extends StatefulWidget {
   const InfoPoliticosApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const ink = Color(0xFF0E1217);
-    const slate = Color(0xFF2A3340);
-    const bg = Color(0xFFF3F5F7);
-    const surface = Color(0xFFFAFBFC);
-    const border = Color(0xFFD1D6DE);
-    const accent = Color(0xFF4B6B88);
-    const metallic = Color(0xFF7B8A9A);
+  State<InfoPoliticosApp> createState() => _InfoPoliticosAppState();
+}
 
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: accent,
-      surface: surface,
-      onSurface: ink,
-    );
+class _InfoPoliticosAppState extends State<InfoPoliticosApp> {
+  late DateTime _now;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      final current = DateTime.now();
+      if (_shouldRebuildForTheme(current)) {
+        setState(() => _now = current);
+      } else {
+        _now = current;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  bool _shouldRebuildForTheme(DateTime next) {
+    return _isNight(_now) != _isNight(next);
+  }
+
+  bool _isNight(DateTime value) {
+    return value.hour >= 18 || value.hour < 6;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final darkMode = _isNight(_now);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'InfoPoliticos',
-      theme: ThemeData(
-        colorScheme: colorScheme,
-        useMaterial3: true,
-        textTheme: GoogleFonts.sourceSans3TextTheme().copyWith(
-          titleLarge: GoogleFonts.ibmPlexSans(
-            fontWeight: FontWeight.w700,
-          ),
-          headlineSmall: GoogleFonts.ibmPlexSans(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        scaffoldBackgroundColor: bg,
-        appBarTheme: AppBarTheme(
-          backgroundColor: surface,
-          elevation: 0,
-          centerTitle: false,
-          titleTextStyle: TextStyle(
-            color: ink,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
-          iconTheme: const IconThemeData(color: ink),
-        ),
-        cardTheme: CardThemeData(
-          color: surface,
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: border),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: accent,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        dividerColor: border,
-        hintColor: metallic,
-        iconTheme: const IconThemeData(color: slate),
-      ),
-      home: const LandingPage(),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+      home: const AppShell(),
     );
   }
 }

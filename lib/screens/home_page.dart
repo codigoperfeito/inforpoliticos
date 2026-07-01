@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 
 import '../models/deputy.dart';
 import '../services/deputy_repository.dart';
+import '../stores/deputies_store.dart';
 import 'deputy_detail_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,28 +21,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _repository = DeputyRepository();
+  late final DeputiesStore _store;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _listController = ScrollController();
-  late Future<RepositoryResult<List<Deputy>>> _future;
-  String _query = '';
-  String? _selectedRegion;
-  String? _selectedUf;
-  String? _selectedParty;
-  int _visibleCount = _pageSize;
-  int _currentTotal = 0;
   double _lastScrollOffset = 0;
-
-  static const int _pageSize = 30;
 
   @override
   void initState() {
     super.initState();
-    _future = _repository.getDeputies();
-    _selectedUf = widget.initialUf;
+    _store = DeputiesStore(repository: DeputyRepository());
+    _store.setSelectedUf(widget.initialUf);
     if (widget.initialUf != null) {
-      _selectedRegion = _regionByUf[widget.initialUf!];
+      _store.setSelectedRegion(_regionByUf[widget.initialUf!]);
     }
+    if (widget.initialUf != null) {
+      _searchController.text = '';
+    }
+    _store.load();
     _listController.addListener(_onScroll);
   }
 
@@ -52,20 +49,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _reload() async {
-    setState(() {
-      _future = _repository.getDeputies();
-      _visibleCount = _pageSize;
-    });
+    _store.reload();
   }
 
   void _resetSearch() {
-    setState(() {
-      _query = '';
-      _selectedRegion = null;
-      _selectedUf = null;
-      _selectedParty = null;
-      _visibleCount = _pageSize;
-    });
+    _store.resetSearch();
     _searchController.clear();
   }
 
@@ -73,12 +61,7 @@ class _HomePageState extends State<HomePage> {
     _lastScrollOffset = _listController.offset;
     if (_listController.position.pixels >
         _listController.position.maxScrollExtent - 240) {
-      if (_visibleCount < _currentTotal) {
-        setState(() {
-          _visibleCount =
-              (_visibleCount + _pageSize).clamp(0, _currentTotal);
-        });
-      }
+      _store.loadMoreVisible();
     }
   }
 
@@ -107,215 +90,109 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('InfoPoliticos'),
-      ),
-      body: FutureBuilder<RepositoryResult<List<Deputy>>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _ErrorState(onRetry: _reload);
-          }
-          final result = snapshot.data;
-          if (result == null || result.data.isEmpty) {
-            return _EmptyState(onRetry: _reload);
-          }
-          final items = result.data.where((deputy) {
-            final query = _normalize(_query);
-            if (query.isEmpty) {
-              return _matchesFilters(deputy);
-            }
-            final name = _normalize(deputy.displayName);
-            final party = _normalize(deputy.party);
-            final uf = deputy.uf.toLowerCase();
-            final matchesQuery =
-                name.contains(query) || party.contains(query) || uf.contains(query);
-            return matchesQuery && _matchesFilters(deputy);
-          }).toList();
-          _currentTotal = items.length;
-          if (_visibleCount > _currentTotal) {
-            _visibleCount = _currentTotal;
-          }
-          final visibleItems = items.take(_visibleCount).toList();
-          final grouped = _groupByRegion(visibleItems);
-          WidgetsBinding.instance.addPostFrameCallback((_) => _restoreScroll());
+    return Observer(
+      builder: (context) {
+        final result = _store.result.value;
+        final loading = _store.loading.value;
+        final error = _store.errorMessage.value;
+        final items = _store.filteredItems;
+        final grouped = _store.groupedVisibleItems;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _restoreScroll());
 
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView(
-              controller: _listController,
-              padding: const EdgeInsets.all(16),
-              children: [
-                _SearchField(
-                  options: result.data.map((d) => d.displayName).toList(),
-                  controller: _searchController,
-                  onChanged: (value) => setState(() {
-                    _query = value;
-                    _visibleCount = _pageSize;
-                  }),
-                  onSelected: (value) => setState(() {
-                    _query = value;
-                    _visibleCount = _pageSize;
-                  }),
-                ),
-                const SizedBox(height: 12),
-                _UfShortcutRow(
-                  onSelect: (uf) {
-                    setState(() {
-                      _selectedUf = uf;
-                      _selectedRegion = _regionByUf[uf];
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                _FilterPanel(
-                  regions: _regions,
-                  ufs: _ufs,
-                  parties: _parties(result.data),
-                  selectedRegion: _selectedRegion,
-                  selectedUf: _selectedUf,
-                  selectedParty: _selectedParty,
-                  onRegionChanged: (value) => setState(() {
-                    _selectedRegion = value;
-                    _visibleCount = _pageSize;
-                  }),
-                  onUfChanged: (value) => setState(() {
-                    _selectedUf = value;
-                    _visibleCount = _pageSize;
-                  }),
-                  onPartyChanged: (value) => setState(() {
-                    _selectedParty = value;
-                    _visibleCount = _pageSize;
-                  }),
-                  onClear: () => setState(() {
-                    _selectedRegion = null;
-                    _selectedUf = null;
-                    _selectedParty = null;
-                    _visibleCount = _pageSize;
-                  }),
-                ),
-                const SizedBox(height: 12),
-                _CacheBanner(
-                  fromCache: result.fromCache,
-                  lastUpdated: result.lastUpdated,
-                  formattedDate: _formatDate(result.lastUpdated),
-                ),
-                const SizedBox(height: 12),
-                if (items.isEmpty)
-                  _EmptyState(onRetry: _reload)
-                else
-                  for (final entry in grouped.entries) ...[
-                    _SectionHeader(title: entry.key),
-                    for (final deputy in entry.value)
-                      _DeputyCard(
-                        deputy: deputy,
-                        onTap: () async {
-                          final reset = await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  DeputyDetailPage(deputyId: deputy.id),
-                            ),
-                          );
-                          if (reset == true) {
-                            _resetSearch();
-                          }
-                        },
-                      ),
-                  ],
-                if (_visibleCount < _currentTotal)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _visibleCount =
-                                  (_visibleCount + _pageSize).clamp(
-                                    0,
-                                    _currentTotal,
-                                  );
-                            });
-                          },
-                          icon: const Icon(Icons.expand_more),
-                          label: Text('Carregar mais ($_visibleCount/$_currentTotal)'),
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('InfoPoliticos'),
+          ),
+          body: loading && result == null
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _reload,
+                  child: ListView(
+                    controller: _listController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (error != null && result == null)
+                        _ErrorState(
+                          onRetry: _reload,
+                          message: error,
+                        )
+                      else ...[
+                        _SearchField(
+                          options: _store.allItems.map((d) => d.displayName).toList(),
+                          controller: _searchController,
+                          onChanged: (value) => _store.setQuery(value),
+                          onSelected: (value) => _store.setQuery(value),
                         ),
+                        const SizedBox(height: 12),
+                        _UfShortcutRow(
+                          onSelect: (uf) => _store.setSelectedUf(uf),
+                        ),
+                        const SizedBox(height: 12),
+                        _FilterPanel(
+                          regions: _regions,
+                          ufs: _ufs,
+                          parties: _store.parties,
+                          selectedRegion: _store.selectedRegion.value,
+                          selectedUf: _store.selectedUf.value,
+                          selectedParty: _store.selectedParty.value,
+                          onRegionChanged: _store.setSelectedRegion,
+                          onUfChanged: _store.setSelectedUf,
+                          onPartyChanged: _store.setSelectedParty,
+                          onClear: _store.clearFilters,
+                        ),
+                        const SizedBox(height: 12),
+                        if (result != null)
+                          _CacheBanner(
+                            fromCache: result.fromCache,
+                            lastUpdated: result.lastUpdated,
+                            formattedDate: _formatDate(result.lastUpdated),
+                          ),
+                        const SizedBox(height: 12),
+                        if (items.isEmpty)
+                          _EmptyState(onRetry: _reload)
+                        else
+                          for (final entry in grouped.entries) ...[
+                            _SectionHeader(title: entry.key),
+                            for (final deputy in entry.value)
+                              _DeputyCard(
+                                deputy: deputy,
+                                onTap: () async {
+                                  final reset = await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => DeputyDetailPage(
+                                        deputyId: deputy.id,
+                                      ),
+                                    ),
+                                  );
+                                  if (reset == true) {
+                                    _resetSearch();
+                                  }
+                                },
+                              ),
+                          ],
+                        if (_store.visibleCount.value < _store.totalCount)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _store.loadMoreVisible,
+                                  icon: const Icon(Icons.expand_more),
+                                  label: Text(
+                                    'Carregar mais (${_store.visibleCount.value}/${_store.totalCount})',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
-                    ),
+                    ],
                   ),
-              ],
-            ),
-          );
-        },
-      ),
+                ),
+        );
+      },
     );
-  }
-
-  bool _matchesFilters(Deputy deputy) {
-    final region = _regionByUf[deputy.uf] ?? 'Outros';
-    if (_selectedRegion != null && _selectedRegion != region) {
-      return false;
-    }
-    if (_selectedUf != null && _selectedUf != deputy.uf) {
-      return false;
-    }
-    if (_selectedParty != null && _selectedParty != deputy.party) {
-      return false;
-    }
-    return true;
-  }
-
-  String _normalize(String value) {
-    var text = value.toLowerCase();
-    const map = {
-      'á': 'a',
-      'à': 'a',
-      'ã': 'a',
-      'â': 'a',
-      'ä': 'a',
-      'é': 'e',
-      'è': 'e',
-      'ê': 'e',
-      'ë': 'e',
-      'í': 'i',
-      'ì': 'i',
-      'î': 'i',
-      'ï': 'i',
-      'ó': 'o',
-      'ò': 'o',
-      'õ': 'o',
-      'ô': 'o',
-      'ö': 'o',
-      'ú': 'u',
-      'ù': 'u',
-      'û': 'u',
-      'ü': 'u',
-      'ç': 'c',
-    };
-    map.forEach((key, replacement) {
-      text = text.replaceAll(key, replacement);
-    });
-    return text;
-  }
-
-  Map<String, List<Deputy>> _groupByRegion(List<Deputy> items) {
-    final map = <String, List<Deputy>>{};
-    for (final deputy in items) {
-      final region = _regionByUf[deputy.uf] ?? 'Outros';
-      map.putIfAbsent(region, () => []).add(deputy);
-    }
-    return map;
-  }
-
-  List<String> _parties(List<Deputy> items) {
-    final set = items.map((d) => d.party).where((p) => p.isNotEmpty).toSet();
-    final list = set.toList()..sort();
-    return list;
   }
 
 }
@@ -853,9 +730,10 @@ class _DeputyCard extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
+  const _ErrorState({required this.onRetry, this.message});
 
   final VoidCallback onRetry;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -871,6 +749,14 @@ class _ErrorState extends StatelessWidget {
               'Não foi possível carregar os dados agora.',
               textAlign: TextAlign.center,
             ),
+            if (message != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 16),
             FilledButton(
               onPressed: onRetry,

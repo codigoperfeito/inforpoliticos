@@ -282,33 +282,177 @@ class _HousingBenefitCard extends StatelessWidget {
   }
 }
 
-class _ExpenseTile extends StatelessWidget {
+class _ExpenseTile extends StatefulWidget {
   const _ExpenseTile({required this.expense});
 
   final dynamic expense;
 
   @override
+  State<_ExpenseTile> createState() => _ExpenseTileState();
+}
+
+class _ExpenseTileState extends State<_ExpenseTile>
+    with TickerProviderStateMixin {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(expense.description.isNotEmpty
-            ? expense.description
-            : 'Despesa'),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (expense.supplier.isNotEmpty) Text(expense.supplier),
-            if (expense.cnpjCpf.isNotEmpty) Text(expense.cnpjCpf),
-            if (expense.date.isNotEmpty) Text(expense.date),
-          ],
-        ),
-        trailing: Text(
-          expense.amount != null
-              ? 'R\$ ${expense.amount!.toStringAsFixed(2)}'
-              : 'R\$ -',
+    final expense = widget.expense;
+    final description = expense.description.isNotEmpty
+        ? expense.description
+        : 'Despesa';
+    final icon = _expenseIcon(expense);
+    final iconColor = Theme.of(context).colorScheme.primary;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: EdgeInsets.only(bottom: 10, top: _expanded ? 2 : 0),
+      transform: Matrix4.translationValues(0, _expanded ? -2 : 0, 0),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        elevation: _expanded ? 6 : 1,
+        shadowColor: Colors.black26,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: iconColor.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: iconColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 220),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium!
+                                  .copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                              child: Text(description),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _expenseCategoryLabel(expense),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Colors.grey.shade700,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            expense.amount != null
+                                ? 'R\$ ${expense.amount!.toStringAsFixed(2)}'
+                                : 'R\$ -',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 4),
+                          Icon(
+                            _expanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            color: Colors.grey.shade600,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: !_expanded
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            key: const ValueKey('details'),
+                            padding: const EdgeInsets.only(top: 12, left: 56),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (expense.supplier.isNotEmpty)
+                                  _ExpenseInfoRow(
+                                    icon: Icons.storefront_outlined,
+                                    label: expense.supplier,
+                                  ),
+                                if (expense.cnpjCpf.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  _ExpenseInfoRow(
+                                    icon: Icons.badge_outlined,
+                                    label: expense.cnpjCpf,
+                                  ),
+                                ],
+                                if (expense.date.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  _ExpenseInfoRow(
+                                    icon: Icons.calendar_month_outlined,
+                                    label: expense.date,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _ExpenseInfoRow extends StatelessWidget {
+  const _ExpenseInfoRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade700),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade800),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -384,6 +528,71 @@ List<dynamic> _filterImovelExpenses(List<dynamic> items) {
         description.contains('imovel funcional') ||
         description.contains('imóvel funcional');
   }).toList();
+}
+
+IconData _expenseIcon(dynamic expense) {
+  final raw = _expenseText(expense).toLowerCase();
+  if (raw.contains('passagem') ||
+      raw.contains('transporte') ||
+      raw.contains('locomo') ||
+      raw.contains('combust')) {
+    return Icons.directions_car_filled_outlined;
+  }
+  if (raw.contains('aluguel') ||
+      raw.contains('imovel') ||
+      raw.contains('imóvel') ||
+      raw.contains('hospedagem') ||
+      raw.contains('hotel')) {
+    return Icons.home_work_outlined;
+  }
+  if (raw.contains('consultoria') ||
+      raw.contains('assessoria') ||
+      raw.contains('serviço') ||
+      raw.contains('servico')) {
+    return Icons.work_outline;
+  }
+  if (raw.contains('aliment') ||
+      raw.contains('refeição') ||
+      raw.contains('restaurante') ||
+      raw.contains('café')) {
+    return Icons.restaurant_outlined;
+  }
+  if (raw.contains('telefone') ||
+      raw.contains('internet') ||
+      raw.contains('comunica')) {
+    return Icons.phone_iphone_outlined;
+  }
+  if (raw.contains('passagem aérea') ||
+      raw.contains('passagem aerea') ||
+      raw.contains('aéreo') ||
+      raw.contains('aereo')) {
+    return Icons.flight_outlined;
+  }
+  return Icons.receipt_long_outlined;
+}
+
+String _expenseCategoryLabel(dynamic expense) {
+  final raw = _expenseText(expense).toLowerCase();
+  if (raw.contains('imovel') || raw.contains('imóvel')) return 'Imóvel / moradia';
+  if (raw.contains('passagem') || raw.contains('transporte')) return 'Transporte';
+  if (raw.contains('aliment') || raw.contains('restaurante')) return 'Alimentação';
+  if (raw.contains('consultoria') || raw.contains('assessoria')) return 'Serviços';
+  if (raw.contains('telefone') || raw.contains('internet')) return 'Comunicação';
+  return 'Despesa registrada';
+}
+
+String _expenseText(dynamic expense) {
+  final parts = <String>[
+    if ((expense.description as String?)?.isNotEmpty == true)
+      expense.description as String,
+    if ((expense.supplier as String?)?.isNotEmpty == true)
+      expense.supplier as String,
+    if ((expense.cnpjCpf as String?)?.isNotEmpty == true)
+      expense.cnpjCpf as String,
+    if ((expense.date as String?)?.isNotEmpty == true)
+      expense.date as String,
+  ];
+  return parts.join(' ').trim();
 }
 
 String _monthLabel(int? month) {

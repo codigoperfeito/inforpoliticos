@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 
 import '../models/senator.dart';
-import '../services/senate_api.dart';
+import '../stores/senators_store.dart';
+import '../utils/text_utils.dart';
 import 'senator_detail_page.dart';
 
 class SenatorsPage extends StatefulWidget {
@@ -16,21 +18,16 @@ class SenatorsPage extends StatefulWidget {
 }
 
 class _SenatorsPageState extends State<SenatorsPage> {
-  final _api = SenateApi();
+  late final SenatorsStore _store;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _listController = ScrollController();
-  late Future<List<Senator>> _future;
-  String _query = '';
-  String? _selectedUf;
-  String? _selectedParty;
 
   @override
   void initState() {
     super.initState();
-    _future = _api.fetchSenators();
-    if (widget.initialUf != null) {
-      _selectedUf = widget.initialUf;
-    }
+    _store = SenatorsStore();
+    _store.setInitialUf(widget.initialUf);
+    _store.load();
   }
 
   @override
@@ -41,150 +38,83 @@ class _SenatorsPageState extends State<SenatorsPage> {
   }
 
   Future<void> _reload() async {
-    setState(() {
-      _future = _api.fetchSenators();
-    });
-  }
-
-  bool _matchesFilters(Senator senator) {
-    if (_selectedUf != null && _selectedUf != senator.uf) {
-      return false;
-    }
-    if (_selectedParty != null && _selectedParty != senator.party) {
-      return false;
-    }
-    return true;
-  }
-
-  String _normalize(String value) {
-    var text = value.toLowerCase();
-    const map = {
-      'á': 'a',
-      'à': 'a',
-      'ã': 'a',
-      'â': 'a',
-      'ä': 'a',
-      'é': 'e',
-      'è': 'e',
-      'ê': 'e',
-      'ë': 'e',
-      'í': 'i',
-      'ì': 'i',
-      'î': 'i',
-      'ï': 'i',
-      'ó': 'o',
-      'ò': 'o',
-      'õ': 'o',
-      'ô': 'o',
-      'ö': 'o',
-      'ú': 'u',
-      'ù': 'u',
-      'û': 'u',
-      'ü': 'u',
-      'ç': 'c',
-    };
-    map.forEach((key, replacement) {
-      text = text.replaceAll(key, replacement);
-    });
-    return text;
+    _store.reload();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Senadores'),
-        actions: [
-          IconButton(
-            tooltip: 'Atualizar',
-            onPressed: _reload,
-            icon: const Icon(Icons.refresh),
+    return Observer(
+      builder: (context) {
+        final loading = _store.loading.value;
+        final error = _store.errorMessage.value;
+        final items = _store.filteredSenators;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Senadores'),
+            actions: [
+              IconButton(
+                tooltip: 'Atualizar',
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: FutureBuilder<List<Senator>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _ErrorState(
-              message: snapshot.error.toString(),
-              onRetry: _reload,
-            );
-          }
-          final data = snapshot.data ?? [];
-          if (data.isEmpty) {
-            return _EmptyState(onRetry: _reload);
-          }
-
-          final items = data.where((senator) {
-            final query = _normalize(_query);
-            if (query.isEmpty) {
-              return _matchesFilters(senator);
-            }
-            final name = _normalize(senator.displayName);
-            final party = _normalize(senator.party);
-            final uf = senator.uf.toLowerCase();
-            final matches =
-                name.contains(query) || party.contains(query) || uf.contains(query);
-            return matches && _matchesFilters(senator);
-          }).toList();
-
-          final parties = data
-              .map((d) => d.party)
-              .where((p) => p.isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort();
-
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView(
-              controller: _listController,
-              padding: const EdgeInsets.all(16),
-              children: [
-                _SearchField(
-                  options: data.map((d) => d.displayName).toList(),
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _query = value),
-                  onSelected: (value) => setState(() => _query = value),
+          body: loading && _store.senators.value.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _reload,
+                  child: ListView(
+                    controller: _listController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (error != null && _store.senators.value.isEmpty)
+                        _ErrorState(
+                          message: error,
+                          onRetry: _reload,
+                        )
+                      else ...[
+                        _SearchField(
+                          options: _store.senators.value
+                              .map((d) => d.displayName)
+                              .toList(),
+                          controller: _searchController,
+                          onChanged: _store.setQuery,
+                          onSelected: _store.setQuery,
+                        ),
+                        const SizedBox(height: 12),
+                        _FilterPanel(
+                          ufs: _ufs,
+                          parties: _store.parties,
+                          selectedUf: _store.selectedUf.value,
+                          selectedParty: _store.selectedParty.value,
+                          onUfChanged: _store.setSelectedUf,
+                          onPartyChanged: _store.setSelectedParty,
+                          onClear: _store.clearFilters,
+                        ),
+                        const SizedBox(height: 12),
+                        if (items.isEmpty)
+                          _EmptyState(onRetry: _reload)
+                        else
+                          for (final senator in items)
+                            _SenatorCard(
+                              senator: senator,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => SenatorDetailPage(
+                                      senatorId: senator.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                      ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _FilterPanel(
-                  ufs: _ufs,
-                  parties: parties,
-                  selectedUf: _selectedUf,
-                  selectedParty: _selectedParty,
-                  onUfChanged: (value) => setState(() => _selectedUf = value),
-                  onPartyChanged: (value) => setState(() => _selectedParty = value),
-                  onClear: () => setState(() {
-                    _selectedUf = null;
-                    _selectedParty = null;
-                  }),
-                ),
-                const SizedBox(height: 12),
-                if (items.isEmpty)
-                  _EmptyState(onRetry: _reload)
-                else
-                  for (final senator in items)
-                    _SenatorCard(
-                      senator: senator,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                          builder: (_) =>
-                                SenatorDetailPage(senatorId: senator.id),
-                          ),
-                        );
-                      },
-                    ),
-              ],
-            ),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 }
@@ -237,13 +167,13 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Autocomplete<String>(
       optionsBuilder: (value) {
-        final query = _normalize(value.text.trim());
+        final query = normalizeText(value.text.trim());
         if (query.isEmpty) {
           return const Iterable<String>.empty();
         }
-        final starts = options.where((name) => _normalize(name).startsWith(query));
+        final starts = options.where((name) => normalizeText(name).startsWith(query));
         final contains = options.where(
-          (name) => !starts.contains(name) && _normalize(name).contains(query),
+          (name) => !starts.contains(name) && normalizeText(name).contains(query),
         );
         return [...starts, ...contains].take(8);
       },
@@ -251,11 +181,12 @@ class _SearchField extends StatelessWidget {
         controller.text = value;
         onSelected(value);
       },
-      fieldViewBuilder: (context, _, focusNode, _) {
+      fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
         return TextField(
-          controller: controller,
+          controller: textController,
           focusNode: focusNode,
           onChanged: onChanged,
+          onSubmitted: (_) => onFieldSubmitted(),
           decoration: InputDecoration(
             hintText: 'Buscar por nome, partido ou UF',
             prefixIcon: const Icon(Icons.search),
@@ -287,7 +218,7 @@ class _SearchField extends StatelessWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.all(8),
                 itemCount: options.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
+                separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final option = options.elementAt(index);
                   return ListTile(
@@ -303,39 +234,6 @@ class _SearchField extends StatelessWidget {
       },
     );
   }
-}
-
-String _normalize(String value) {
-  var text = value.toLowerCase();
-  const map = {
-    'á': 'a',
-    'à': 'a',
-    'ã': 'a',
-    'â': 'a',
-    'ä': 'a',
-    'é': 'e',
-    'è': 'e',
-    'ê': 'e',
-    'ë': 'e',
-    'í': 'i',
-    'ì': 'i',
-    'î': 'i',
-    'ï': 'i',
-    'ó': 'o',
-    'ò': 'o',
-    'õ': 'o',
-    'ô': 'o',
-    'ö': 'o',
-    'ú': 'u',
-    'ù': 'u',
-    'û': 'u',
-    'ü': 'u',
-    'ç': 'c',
-  };
-  map.forEach((key, replacement) {
-    text = text.replaceAll(key, replacement);
-  });
-  return text;
 }
 
 class _FilterPanel extends StatelessWidget {

@@ -1,16 +1,60 @@
 # InfoPoliticos
 
-A new Flutter project.
+O **InfoPoliticos** é um aplicativo Flutter criado para informar as pessoas sobre políticos de forma simples, clara e acessível.
 
-## Getting Started
+A proposta do projeto é ajudar qualquer cidadão a encontrar informações públicas sobre deputados e senadores sem complicação, com uma interface moderna e organizada para facilitar a navegação.
 
-This project is a starting point for a Flutter application.
+## Objetivo
 
-A few resources to get you started if this is your first Flutter project:
+O app existe para apoiar a transparência pública e tornar mais fácil o acesso a dados políticos relevantes.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Ele foi pensado para:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- mostrar informações de forma simples
+- facilitar buscas por políticos
+- organizar dados públicos em uma interface clara
+- ajudar o usuário a comparar e entender informações com mais rapidez
+
+## O que o aplicativo oferece
+
+- busca de deputados e senadores
+- filtros por nome, partido e UF
+- páginas de detalhes com informações públicas
+- gastos, votações e dados relacionados
+- visual moderno com foco em leitura e usabilidade
+
+## Tecnologias usadas
+
+- Flutter
+- Dart
+- HTTP
+- MobX
+- Material 3
+- Google Fonts
+
+## Filosofia do projeto
+
+O InfoPoliticos não foi criado para fazer campanha, opinião ou discurso político.
+O foco é somente informar.
+
+As informações exibidas devem ser tratadas como dados públicos e oficiais, com atenção à clareza, neutralidade e transparência.
+
+## Como executar
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Estrutura geral
+
+- `lib/screens/` - telas do aplicativo
+- `lib/models/` - modelos de dados
+- `lib/services/` - integração com APIs
+- `lib/stores/` - estado reativo com MobX
+- `lib/core/` - tema e componentes reutilizáveis
+
+## Licença
+
+Este projeto está disponível para fins de estudo, uso pessoal e evolução contínua.
+

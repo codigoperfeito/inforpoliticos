@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563EB">
+  <title>InfoPoliticos</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: rgba(255, 255, 255, 0.78);
+      --surface-strong: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-dark: #1e40af;
+      --secondary: #7c3aed;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 36%),
+        radial-gradient(circle at top right, rgba(124, 58, 237, 0.10), transparent 30%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg) 42%, #eef2ff 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-top: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-main {
+      padding: 36px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-main::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -100px auto;
+      width: 240px;
+      height: 240px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.18), transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.10);
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      margin: 18px 0 14px;
+      font-size: clamp(2.4rem, 5vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lead {
+      font-size: 1.06rem;
+      line-height: 1.75;
+      color: var(--muted);
+      max-width: 62ch;
+      margin: 0;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      box-shadow: 0 18px 32px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--border);
+    }
+
+    .hero-side {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .stat {
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.25rem;
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: .96rem;
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .feature {
+      padding: 20px;
+    }
+
+    .feature h3,
+    .section h2 {
+      margin: 0 0 10px;
+      letter-spacing: -0.03em;
+    }
+
+    .feature p,
+    .section p,
+    li {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .section {
+      margin-top: 24px;
+      padding: 28px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.07);
+      color: var(--primary-dark);
+      font-weight: 600;
+      font-size: .93rem;
+      border: 1px solid rgba(37, 99, 235, 0.10);
+    }
+
+    .list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px 20px;
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list li {
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .list li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--primary);
+      position: absolute;
+      left: 0;
+      top: 0.65em;
+    }
+
+    .footer {
+      padding: 18px 0 0;
+      color: var(--muted);
+      font-size: .94rem;
+      text-align: center;
+    }
+
+    @media (max-width: 920px) {
+      .hero,
+      .grid,
+      .list {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main {
+        padding: 28px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: min(100% - 20px, 1120px);
+        padding-top: 20px;
+      }
+
+      .hero-main, .hero-side, .section {
+        padding: 20px;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="card hero-main">
+        <div class="eyebrow">InfoPoliticos • Transparência pública</div>
+        <h1>Informações políticas de forma simples, clara e acessível.</h1>
+        <p class="lead">
+          O <strong>InfoPoliticos</strong> é um aplicativo Flutter criado para ajudar as pessoas a encontrar,
+          comparar e entender dados públicos sobre deputados, senadores, gastos, votações, projetos e
+          informações oficiais em uma interface moderna e direta.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/codigoperfeito/inforpoliticos" target="_blank" rel="noreferrer">Ver no GitHub</a>
+          <a class="btn btn-secondary" href="#sobre">Saber mais</a>
+        </div>
+      </div>
+      <aside class="card hero-side">
+        <div class="stat">
+          <strong>Transparência</strong>
+          <span>Organização visual pensada para mostrar informações públicas com clareza e confiança.</span>
+        </div>
+        <div class="stat">
+          <strong>Neutralidade</strong>
+          <span>O projeto não faz campanha e não emite opiniões políticas. Ele só apresenta dados.</span>
+        </div>
+        <div class="stat">
+          <strong>Usabilidade</strong>
+          <span>Foco em navegação simples, leitura fácil, filtros rápidos e telas responsivas.</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="grid">
+      <article class="card feature">
+        <h3>Deputados</h3>
+        <p>Busca, filtros por UF e partido, detalhes com gastos, votações e dados públicos relevantes.</p>
+      </article>
+      <article class="card feature">
+        <h3>Senadores</h3>
+        <p>Consulta de lista, autocomplete, dados de perfil e consumo organizado da API oficial.</p>
+      </article>
+      <article class="card feature">
+        <h3>Design Premium</h3>
+        <p>Material 3, cartões arredondados, tipografia limpa e visual moderno com modo claro/escuro automático.</p>
+      </article>
+    </section>
+
+    <section class="card section" id="sobre">
+      <h2>Sobre o projeto</h2>
+      <p>
+        O objetivo do aplicativo é facilitar o acesso a informações públicas sobre políticos, de forma simples e
+        útil para qualquer pessoa que queira acompanhar atuação, gastos e dados institucionais.
+      </p>
+      <div class="chips">
+        <span class="chip">Flutter</span>
+        <span class="chip">Material 3</span>
+        <span class="chip">MobX</span>
+        <span class="chip">APIs públicas</span>
+        <span class="chip">Transparência</span>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2>O que o app oferece</h2>
+      <ul class="list">
+        <li>Busca por nome, partido e UF</li>
+        <li>Listas de deputados e senadores</li>
+        <li>Páginas de detalhes com dados públicos</li>
+        <li>Visual moderno e responsivo</li>
+        <li>Estado de loading, erro e vazio</li>
+        <li>Foco em leitura e acessibilidade</li>
+      </ul>
+    </section>
+
+    <section class="card section">
+      <h2>Visão do aplicativo</h2>
+      <p>
+        O <strong>InfoPoliticos</strong> foi pensado para ser um aliado da população: simples de usar, bonito de
+        ver e fácil de entender. A experiência prioriza clareza, confiança e acesso rápido às informações.
+      </p>
+    </section>
+
+    <div class="footer">
+      Desenvolvido para informar de forma simples e direta.
+    </div>
+  </main>
+</body>
+</html>

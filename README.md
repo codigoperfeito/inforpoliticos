@@ -56,5 +56,5 @@ flutter run
 
 ## Licença
 
-Este projeto está disponível para fins de estudo, uso pessoal e evolução contínua.
-
+Este projeto está protegido por uma licença proprietária.  
+Veja o arquivo [`LICENSE`](LICENSE) para os termos de uso.
